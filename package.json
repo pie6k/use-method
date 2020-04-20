@@ -17,7 +17,7 @@
     "build": "rimraf dist && tsc",
     "demo": "parcel demo/index.html",
     "demo:build": "rimraf demoBuild & parcel build demo/index.html -d demoBuild --no-source-maps",
-    "demo:deploy": "yarn demo:build --public-url \"/suspensify\" && gh-pages -d demoBuild"
+    "demo:deploy": "yarn demo:build --public-url \"/use-const-callback\" && gh-pages -d demoBuild"
   },
   "peerDependencies": {
     "react": "^16.8"
