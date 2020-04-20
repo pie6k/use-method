@@ -1,5 +1,5 @@
 {
-  "name": "use-const-callback",
+  "name": "use-method",
   "version": "1.0.0",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,11 +17,11 @@
     "build": "rimraf dist && tsc",
     "demo": "parcel demo/index.html",
     "demo:build": "rimraf demoBuild & parcel build demo/index.html -d demoBuild --no-source-maps",
-    "demo:deploy": "yarn demo:build --public-url \"/use-const-callback\" && gh-pages -d demoBuild"
+    "demo:deploy": "yarn demo:build --public-url \"/use-method\" && gh-pages -d demoBuild"
   },
-  "homepage": "https://github.com/pie6k/use-const-callback",
+  "homepage": "https://github.com/pie6k/use-method",
   "repository": {
-    "url": "https://github.com/pie6k/use-const-callback"
+    "url": "https://github.com/pie6k/use-method"
   },
   "peerDependencies": {
     "react": "^16.8"

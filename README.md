@@ -1,9 +1,11 @@
 # Useage
 
-`yarn add use-const-callback`
+`yarn add use-method`
 
 ```ts
-useConstCallback(callbackFunction); // returns function with the same signature as callbackFunction
+import { useMethod } from 'use-method';
+
+useMethod(callbackFunction); // returns function with the same signature as callbackFunction
 ```
 
 # Introduction & Rationale
@@ -117,17 +119,17 @@ In this case, provided function in props doesn't impact render result as it's on
 
 What it means in terms of optimizations is we want to keep this prop function reference the same as long as possible while allowing it to have access to fresh values used inside it.
 
-And this is exactly what `useConstCallback` is doing.
+And this is exactly what `useMethod` is doing.
 
 ## How does it work?
 
-`useConstCallback` will return the same callback function reference during entire lifecycle of the component, but under the hood it'll always use last function version, when called.
+`useMethod` will return the same callback function reference during entire lifecycle of the component, but under the hood it'll always use last function version, when called.
 
 Let's consider such example:
 
 ```tsx
 function PeopleToggler({ people, onToggle }) {
-  const togglePerson = useConstCallback((person) => {
+  const togglePerson = useMethod((person) => {
     // we want to always use `fresh` people and onToggle props here
     const peopleAfterToggle = oggleInArray(people, person);
     onToggle(peopleAfterToggle);
@@ -141,7 +143,7 @@ When `togglePerson` is called - we need access to fresh `people` and `onToggle` 
 
 At the same time, we want `togglePerson` reference to remain constant to avoid re-rendering `ToggleButton`.
 
-Both of those things will happen with `useConstCallback`.
+Both of those things will happen with `useMethod`.
 
 The same component using `useCallback` could look like:
 

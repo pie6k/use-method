@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { render } from 'react-dom';
-import { useConstCallback } from '../src';
+import { useMethod } from '../src';
 
 import { RenderCount } from './RendersCount';
 
@@ -22,7 +22,7 @@ function App() {
 
   // we create callback that will never change it's reference, but will always
   // use last callback 'version' (so in this case it'll alert current count)
-  const showCount = useConstCallback(() => {
+  const showCount = useMethod(() => {
     alert(count);
   });
 
@@ -40,10 +40,10 @@ function App() {
 const Button = memo(function Memoized({ onClick }: { onClick: () => void }) {
   console.log('button rendered');
   return (
-    <section>
+    <div>
       <RenderCount label="Button" />
       <button onClick={onClick}>Click</button>
-    </section>
+    </div>
   );
 });
 
