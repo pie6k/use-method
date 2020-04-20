@@ -39,6 +39,7 @@ export function useMethod<Args extends any[], Result>(
    * - even if render will be called multiple times without commiting - still previous commited callback ref is kept
    * - it means that even if some callbacks are called - they'll use proper, last working callback
    */
+  // TODO: During first render - we assing callback ref instantly which could break in concurrent mode due to above reasons.
   useLayoutEffect(() => {
     // render is commited - it's safe to update the callback
     lastRenderCallbackRef.current = callback;

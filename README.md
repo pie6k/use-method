@@ -5,12 +5,22 @@
 ```ts
 import { useMethod } from 'use-method';
 
-useMethod(callbackFunction); // returns function with the same signature as callbackFunction
+function MyComponent() {
+  const randomNumber = Math.random();
+
+  // returns function that keeps the same reference during entire lifecycle of the component, while always using 'fresh' variables from last render
+  const hiMethod = useMethod((name) => {
+    // it'll always have `randomNumber` variable from the last render
+    alert(`Hi, ${name} (${randomNumber})!`);
+  });
+
+  // hiMethod reference will remain the same on every render - if you'll pass it to other components like <MyComponent onEvent={hiMethod} /> it'll never re-render if it's memo or PureComponent
+}
 ```
 
 # Introduction & Rationale
 
-When hooks got introduced - it's became problematic to avoid re-creating functions references on each render.
+When hooks got introduced - it's became problematic to keep functions references the same on each render.
 
 With classes it's not a problem. You just call `this.handleClick` which has the same reference on every render.
 
@@ -26,104 +36,15 @@ function SomeComponent() {
 }
 ```
 
-Without any optimization - `handleClick` would be brand new function on every render, which can lead to re-rendering child components.
+Without any optimization - `handleClick` would result in a brand new function on every render.
 
 React `useCallback` hook is created to help solving this problem.
 
-However, when using it, you might face some problems:
+But even `useCallback` updates function reference when variables used as dependencies change.
 
-## Polluted code which doesn't contribute to business logic:
+Also - useCallback dependencies list tend to 'pollute' the code and might make it easy to introduce nasty bugs if you don't use proper linter.
 
-Quite often, when creating more complicated components, you'll end up having quite long list of callback dependencies:
-
-```tsx
-const onDragMove = useCallback(() => {
-  // implementation
-}, [
-  onDragStart,
-  onDragEnd,
-  onDragSort,
-  currentDraggableItems,
-  currentDraggedItem,
-]);
-```
-
-It 'pollutes' your code without contributing to actual business logic.
-
-It becomes even worse if your list of dependencies becomes so long that formatter like prettier breaks the list into multiple lines.
-
-Code lines related to those dependencies can actually be quite big part of total lines of code of your file.
-
-Also - without using proper linter - it's very easy to forget about adding some dependency which might lead to nasty bugs. You can also provide too many dependencies at some point (eg. when you'll refactor your code) which can loosen your optimizations.
-
-## useCallback result reference still has to update when dependencies change
-
-Even when properly using `useCallback` - your function reference still has to update when dependencies change. eg:
-
-```tsx
-function PeopleToggler({ people, onToggle }) {
-  const togglePerson = useCallback(
-    (person) => {
-      const peopleAfterToggle = oggleInArray(people, person);
-      onToggle(peopleAfterToggle);
-    },
-    [people, onToggle],
-  );
-
-  return <ToggleButton onToggle={togglePerson} />;
-}
-```
-
-In this case, our `togglePerson` will actually get new reference every time props `{people, onToggle}` will change. It seems unavoidable with `useCallback` without creating ref value for every value used inside the callback.
-
-It means our `ToggleButton` will also re-render every time main props will change.
-
-## What can we do about it?
-
-First, let's consider this:
-
-There are actually 2 main ways in which functions passed as props are used in React components.
-
-### One way is to call a function from props DURING the render:
-
-```tsx
-function UserFollowersCount({ followersFilter, followersList }) {
-  const actualFollowers = followersList.filter((follower) => {
-    // !! Our function from props is called DURING the render
-    return followersFilter(follower);
-  });
-
-  // render the list
-}
-```
-
-In this case - function provided in prop (`followersFilter`) can impact render result so component needs to be aware when it has changed in order to re-render.
-
-In this case it's good thing that `followersFilter` will get new reference as we indeed want it to re-render.
-
-### We also have functions from props called only AFTER the render (usually inside events)
-
-Quite often we pass a lot of functions (usually related to events) that got called at some point in time AFTER the render (they can also never be actually called)
-
-```tsx
-function Input({placeholder, onChange}) {
-  return <input placeholder={placeholder} onChange={event => {
-    // onChange function from props get called on some event after the render
-    // it might also never be actually called
-    onChange(event.target.value)
-  }}>
-}
-```
-
-In this case, provided function in props doesn't impact render result as it's only used AFTER the render when some action (like onClick/onChange) occurs.
-
-What it means in terms of optimizations is we want to keep this prop function reference the same as long as possible while allowing it to have access to fresh values used inside it.
-
-And this is exactly what `useMethod` is doing.
-
-## How does it work?
-
-`useMethod` will return the same callback function reference during entire lifecycle of the component, but under the hood it'll always use last function version, when called.
+`use-method` makes provided function behave like class method. It will have the same reference on every render, but it'll use values from last render.
 
 Let's consider such example:
 
@@ -139,11 +60,9 @@ function PeopleToggler({ people, onToggle }) {
 }
 ```
 
-When `togglePerson` is called - we need access to fresh `people` and `onToggle` values in order for callback to work properly.
+When `togglePerson` is called - it has access to fresh `people` and `onToggle` values.
 
-At the same time, we want `togglePerson` reference to remain constant to avoid re-rendering `ToggleButton`.
-
-Both of those things will happen with `useMethod`.
+At the same time, `togglePerson` reference remains constant.
 
 The same component using `useCallback` could look like:
 
@@ -162,48 +81,45 @@ function PeopleToggler({ people, onToggle }) {
 }
 ```
 
-In this case, our `togglePerson` will actually get new reference every time props `people` or `onToggle` props will change.
-
-It means our `ToggleButton` will also re-render every time those props change.
+In this case, `togglePerson` will actually get a new reference every time props `people` or `onToggle` will update.
 
 ## When to use it and when not to use it?
 
-### If some function is called DURING the render block eg.
+You can think about it in the same way as class method.
+
+In class, if you'd have something like
 
 ```tsx
-function PersonCard({ person, avatarRenderer }) {
-  return (
-    <div>
-      <strong>{person.name}</strong>
-      <div className="avarar-holder">
-        {/** avararRenderer is called DURING the render **/}
-        {avatarRenderer(person)}
+<Button onPress={this.handlePress} />
+```
+
+It's fine, but if you'd have something like
+
+```tsx
+class Table extends Component {
+  cellLabel = 'Person';
+
+  renderCell(item) {
+    return (
+      <div>
+        Cell: {item.name} (type: {this.cellLabel})
       </div>
-    </div>
-  );
+    );
+  }
+
+  render() {
+    <div>
+      {this.props.cells.map((cellData) => {
+        return <Cell renderer={this.renderCell} key={someKey} />;
+      })}
+    </div>;
+  }
 }
 ```
 
-Dont use this hook. Function returned from it will always have the same reference so child component will not know if it has to re-render
+It's not really safe, because if `cellLabel` will change - Cell will not know about it and as all it's props are the same - it'll not re-render.
 
-### If some function is called AFTER the render block eg.
-
-```tsx
-function Clicker({ label, onClick }) {
-  return (
-    <div
-      onClick={() => {
-        // onClick is called AFTER the render (it might actually never get called)
-        onClick();
-      }}
-    >
-      {label}
-    </div>
-  );
-}
-```
-
-Use this hook as it's not used called during the render.
+Therefore you should use `use-method` mostly for events or something that dont impact rendering output.
 
 ## Licence
 
