@@ -47,6 +47,8 @@ const Button = memo(function Memoized({ onClick }) {
 
 ## Useage
 
+`yarn add use-const-callback`
+
 ```ts
 useConstCallback(callbackFunction); // returns function with the same signature as callbackFunction
 ```
