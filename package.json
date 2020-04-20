@@ -19,6 +19,10 @@
     "demo:build": "rimraf demoBuild & parcel build demo/index.html -d demoBuild --no-source-maps",
     "demo:deploy": "yarn demo:build --public-url \"/use-const-callback\" && gh-pages -d demoBuild"
   },
+  "homepage": "https://github.com/pie6k/use-const-callback",
+  "repository": {
+    "url": "https://github.com/pie6k/use-const-callback"
+  },
   "peerDependencies": {
     "react": "^16.8"
   },
