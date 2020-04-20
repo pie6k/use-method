@@ -4,7 +4,7 @@ It's like `useCallback`, but you don't have to worry about dependencies.
 
 ## How does it work?
 
-`useConstCallback` will return your function and will never change it's reference during entire lifecycle of the component, but when called - it will always use 'fresh' version of the callback from the last render.
+`useConstCallback` will return callback function and will never change it's reference during entire lifecycle of the component, but when called - it will always use 'fresh' version of the callback provided from the last render.
 
 eg.
 
@@ -20,6 +20,10 @@ function SomeComponent() {
     const interval = setInterval(() => {
       setCount((oldCount) => oldCount + 1);
     }, 1000);
+
+    return () => {
+      clearInterval(interval);
+    };
   }, []);
 
   // we create callback that will never change it's reference, but will always
