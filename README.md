@@ -1,53 +1,52 @@
-# Suspensify
+# use-const-callback
 
-Easy way to convert any async function to suspended function
+It's like `useCallback`, but you don't have to worry about dependencies.
 
-```
-yarn add suspensify
-```
+## How does it work?
 
-Demo: https://pie6k.github.io/suspensify/
+`useConstCallback` will return your function and will never change it's reference during entire lifecycle of the component, but when called - it will always use 'fresh' version of the callback from the last render.
 
-```ts
-import React, { Suspense } from 'react';
-import { render } from 'react-dom';
-import { suspensify } from 'suspensify';
+eg.
 
-// first - let's say we have some regular, async function
-function getHelloWithDelay(name: string, delay: number) {
-  // just a promise that returns a string after some delay
-  return new Promise<string>((resolve) => {
-    setTimeout(() => {
-      resolve(`Hello, ${name}`);
-    }, delay);
+```tsx
+import React, { useState, useEffect, memo } from 'react';
+import { useConstCallback } from 'use-const-callback';
+
+function SomeComponent() {
+  // let's re-render the component every second
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCount((oldCount) => oldCount + 1);
+    }, 1000);
+  }, []);
+
+  // we create callback that will never change it's reference, but will always
+  // use last callback 'version' (so in this case it'll alert current count)
+  const showCount = useConstCallback(() => {
+    alert(count);
   });
-}
 
-// now we convert it to suspended function
-const [getSuspendedHello] = suspensify(getHelloWithDelay);
-
-// now we can just use it inside any component like it is sync function
-
-// let's create some simple component
-interface DelayedHelloProps {
-  delay: number;
-  name: string;
-}
-
-function DelayedHello({ delay, name }: DelayedHelloProps) {
-  const helloString = getSuspendedHello(name, delay);
-  return <div>{helloString}</div>;
-}
-
-// last step is to create suspense loading fallback
-function App() {
+  // now we use Button (which is memo component, so it'll not re-render if props doesn't change)
+  // our `showCount` will never change - so this component will not re-render
+  // but when called - it will show count from the last render
   return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <DelayedHello name="Bob" delay={1000} />
-    </Suspense>
+    <div>
+      <Button onClick={showCount} />
+      <div>{count}</div>
+    </div>
   );
 }
 
-// and start the app
-render(<App />, document.getElementById('app'));
+const Button = memo(function Memoized({ onClick }) {
+  console.log('button rendered');
+  return <div onClick={onClick}>Click</div>;
+});
+```
+
+## Useage
+
+```ts
+useConstCallback(callbackFunction); // returns function with the same signature as callbackFunction
 ```
